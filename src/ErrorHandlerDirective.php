@@ -1,9 +1,10 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
-use App\GraphQL\ErrorHandler\Errors\AuthenticationError;
-use App\GraphQL\ErrorHandler\Errors\ValidationError;
+use GraphQL\Language\AST\Node;
+use JBernavaPrah\ErrorHandler\Errors\AuthenticationError;
+use JBernavaPrah\ErrorHandler\Errors\ValidationError;
 use Closure;
 use Exception;
 use GraphQL\Language\AST\DirectiveNode;
@@ -104,7 +105,7 @@ GRAPHQL;
             return null;
         }
 
-        $directive = ASTHelper::firstByName((array)$returnType->directives, ErrorHandlerResolveToDirective::NAME);
+        $directive = ASTHelper::firstByName($returnType->directives, ErrorHandlerResolveToDirective::NAME);
 
         assert($directive instanceof DirectiveNode, 'Impossible to find the directive node.');
 
@@ -120,6 +121,7 @@ GRAPHQL;
 
         /** @var ErrorHandlerManipulator $manipulator */
         $manipulator = app(ErrorHandlerManipulator::class);
+        $manipulator->setDocumentAST($documentAST);
         $manipulator->setErrorsToMap($this->getMethodArgumentParts('wrapWithErrors'));
         $manipulator->manipulate($fieldDefinition, $parentType);
     }

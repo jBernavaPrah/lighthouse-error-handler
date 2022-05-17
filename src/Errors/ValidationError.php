@@ -1,8 +1,8 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler\Errors;
+namespace JBernavaPrah\ErrorHandler\Errors;
 
-use App\GraphQL\ErrorHandler\Error;
+use JBernavaPrah\ErrorHandler\Error;
 use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\Arr;
@@ -92,12 +92,17 @@ GRAPHQL;
      */
     protected static function generateEnumCodes(): string
     {
-        return collect((new ReflectionClass(Validator::class))->getMethods())
+
+
+        return collect((new ReflectionClass(\Illuminate\Validation\Validator::class))->getMethods())
+
             ->reject(fn (ReflectionMethod $method, int $_): bool => ! Str::of($method->getShortName())->startsWith('validate'))
             ->filter()
+
             ->mapWithKeys(fn (ReflectionMethod $method): array => [
                 self::validationCodeString($method->getShortName()) => $method->getDocComment(),
             ])
+
             ->reject(fn (string $doc, $key): bool => ! $key)
             ->map(fn (string $docs, string $_): string => (new PhpdocParser(new TagSet([new Summery()])))->parse($docs)['description'])
             ->map(

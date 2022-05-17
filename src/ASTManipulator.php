@@ -1,10 +1,10 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
-use App\GraphQL\ErrorHandler\Errors\AuthenticationError;
-use App\GraphQL\ErrorHandler\Errors\AuthorizationError;
-use App\GraphQL\ErrorHandler\Errors\ValidationError;
+use JBernavaPrah\ErrorHandler\Errors\AuthenticationError;
+use JBernavaPrah\ErrorHandler\Errors\AuthorizationError;
+use JBernavaPrah\ErrorHandler\Errors\ValidationError;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldDefinitionNode;
 use GraphQL\Language\AST\ObjectTypeDefinitionNode;
@@ -35,8 +35,8 @@ class ASTManipulator
 
         $this->addErrorInterface($documentAST);
         $this->addErrors($documentAST);
-        $this->manipulateFieldsType($documentAST->types[RootType::QUERY]);
-        $this->manipulateFieldsType($documentAST->types[RootType::MUTATION]);
+        $this->manipulateFieldsType($documentAST, $documentAST->types[RootType::QUERY]);
+        $this->manipulateFieldsType($documentAST, $documentAST->types[RootType::MUTATION]);
     }
 
     protected function addErrorInterface(DocumentAST $documentAST): void
@@ -57,29 +57,30 @@ GRAPHQL
 
         collect($errorClasses)
             ->flatten()
-            ->map(fn (string $namespaces) => ClassFinder::getClassesInNamespace($namespaces, ClassFinder::RECURSIVE_MODE))
+            ->map(fn(string $namespaces) => ClassFinder::getClassesInNamespace($namespaces, ClassFinder::RECURSIVE_MODE))
             ->flatten()
-            ->reject(fn (string $class) => ! is_subclass_of($class, Error::class))
+            ->reject(fn(string $class) => !is_subclass_of($class, Error::class))
             ->merge($this->defaultErrorClasses)
-            ->map(fn (string $class) => Parser::parse($class::definition()))
+            ->map(fn(string $class) => Parser::parse($class::definition()))
             ->each(function (DocumentNode $documentNode) use ($documentAST) {
                 foreach ($documentNode->definitions as $node) {
-                    assert($node instanceof TypeDefinitionNode);
+
                     $documentAST->setTypeDefinition($node);
                 }
             });
     }
 
-    protected function manipulateFieldsType(ObjectTypeDefinitionNode $parentNode): void
+    protected function manipulateFieldsType(DocumentAST $documentAST, ObjectTypeDefinitionNode $parentNode): void
     {
 
-        /** @var ErrorHandlerManipulator $errorHAndlerManipulator */
-        $errorHAndlerManipulator = app(ErrorHandlerManipulator::class);
+        /** @var ErrorHandlerManipulator $manipulator */
+        $manipulator = app(ErrorHandlerManipulator::class);
+        $manipulator->setDocumentAST($documentAST);
 
         collect($parentNode->fields)
-            ->map(fn (FieldDefinitionNode $node, string $_) => $errorHAndlerManipulator
+            ->map(fn(FieldDefinitionNode $node, string $_) => $manipulator
                 ->setErrorsToMap(collect($this->defaultErrorClasses)
-                    ->map(fn (string $class) => $class::NAME)
+                    ->map(fn(string $class) => $class::NAME)
                     ->toArray())
                 ->manipulate($node, $parentNode));
     }

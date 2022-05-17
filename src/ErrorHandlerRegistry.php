@@ -1,6 +1,6 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
 use GraphQL\Error\Error;
 use GraphQL\Language\Parser;
@@ -29,7 +29,7 @@ class ErrorHandlerRegistry
      *
      * @var string|null
      */
-    protected ?string $resolveType;
+    protected ?string $resolveType = null;
 
     /**
      * @param TypeRegistry $typeRegistry
@@ -65,7 +65,7 @@ class ErrorHandlerRegistry
      */
     public function resolve(callable $previousResolver, mixed $root, array $args, GraphQLContext $context, ResolveInfo $resolveInfo): mixed
     {
-        if (! $this->resolveType || is_null($resolveInfo->fieldDefinition->astNode)) {
+        if (!$this->resolveType || is_null($resolveInfo->fieldDefinition->astNode)) {
             return $previousResolver($root, $args, $context, $resolveInfo);
         }
 
@@ -85,7 +85,7 @@ class ErrorHandlerRegistry
         // happened if the client only references it indirectly through an interface.
         // Loading the type in turn causes the TypeMiddleware to run and thus register
         // the type in the NodeRegistry.
-        if (! $this->typeRegistry->has($this->resolveType)) {
+        if (!$this->typeRegistry->has($this->resolveType)) {
             throw new Error("[{$this->resolveType}] is not a type and cannot be resolved.");
         }
 
@@ -112,6 +112,7 @@ class ErrorHandlerRegistry
 
     /**
      * Get the Type for the stashed type.
+     * @throws DefinitionException
      */
     public function resolveType(): Type
     {

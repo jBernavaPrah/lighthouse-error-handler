@@ -1,6 +1,6 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
 use Nuwave\Lighthouse\Schema\Directives\BaseDirective;
 

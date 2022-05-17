@@ -1,6 +1,6 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
 use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Support\Collection;

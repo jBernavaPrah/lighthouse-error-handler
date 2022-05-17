@@ -1,9 +1,10 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler;
+namespace JBernavaPrah\ErrorHandler;
 
 use GraphQL\Language\AST\FieldDefinitionNode;
 use GraphQL\Language\AST\Node;
+use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\ObjectTypeDefinitionNode;
 use GraphQL\Language\AST\UnionTypeDefinitionNode;
 use GraphQL\Language\Parser;
@@ -35,11 +36,13 @@ class ErrorHandlerManipulator
 
     private Config $config;
 
-    public function __construct(DocumentAST $documentAST, Config $config)
+    public function __construct( Config $config)
     {
-        $this->documentAST = $documentAST;
+
         $this->config = $config;
     }
+
+
 
     /**
      * @param FieldDefinitionNode $node
@@ -64,9 +67,10 @@ class ErrorHandlerManipulator
 
         $unionTypeDefinition = Parser::unionTypeDefinition(/** @lang GraphQL */ <<<GRAPHQL
 "Error Handler for {$node->name->value}"
-    union $unionName @union(resolveType: "App\\\GraphQL\\\ErrorHandler\\\ErrorHandlerRegistry@resolveType") = $unionType
+    union $unionName @union(resolveType: "JBernavaPrah\\\ErrorHandler\\\ErrorHandlerRegistry@resolveType") = $unionType
 GRAPHQL
         );
+
 
         $mapToType = ASTHelper::getUnderlyingTypeName($node);
         $unionTypeDefinition->directives[] = Parser::constDirective(
@@ -92,8 +96,8 @@ GRAPHQL
         $nodeType = ASTHelper::underlyingType($node);
 
         if ($nodeType instanceof UnionTypeDefinitionNode) {
-            return Collection::wrap((array)$nodeType->types)
-                ->map(fn (Node $type) => ASTHelper::getUnderlyingTypeName($type))->toArray();
+            return collect($nodeType->types)
+                ->map(fn ( $type) => ASTHelper::getUnderlyingTypeName($type))->toArray();
         }
 
         return [$nodeType->name->value];
@@ -158,5 +162,13 @@ GRAPHQL
         $this->errorsToMap = $errorsToMap;
 
         return $this;
+    }
+
+    /**
+     * @param DocumentAST $documentAST
+     */
+    public function setDocumentAST(DocumentAST $documentAST): void
+    {
+        $this->documentAST = $documentAST;
     }
 }

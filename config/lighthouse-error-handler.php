@@ -8,7 +8,6 @@ return [
     |
     | Configure the last part of the union name.
     |
-    |
     */
     'union_name' => 'Resource',
 

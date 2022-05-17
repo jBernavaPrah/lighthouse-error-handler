@@ -1,8 +1,8 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler\Errors;
+namespace JBernavaPrah\ErrorHandler\Errors;
 
-use App\GraphQL\ErrorHandler\Error;
+use JBernavaPrah\ErrorHandler\Error;
 use GraphQL\Type\Definition\ResolveInfo;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\GraphQL\ErrorHandler\Errors;
+namespace JBernavaPrah\ErrorHandler\Errors;
 
-use App\GraphQL\ErrorHandler\Error;
+use JBernavaPrah\ErrorHandler\Error;
 use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Auth\Access\AuthorizationException;
 use JetBrains\PhpStorm\Pure;
