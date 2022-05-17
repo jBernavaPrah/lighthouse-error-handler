@@ -20,13 +20,8 @@ class ErrorHandlerServiceProvider extends ServiceProvider
         $this->app->singleton(ErrorHandlerRegistry::class);
         $this->app->singleton(ErrorHandlerManipulator::class);
 
-        /** @var Config $config */
-        $config = $this->app->make(Config::class);
 
-        $lighthouseMiddleware = $config->get('lighthouse.field_middleware');
-        assert(is_array($lighthouseMiddleware), 'Install and configure Lighthouse first. Missing lighthouse.field_middleware config.');
-        $config->set('lighthouse.field_middleware', Arr::prepend($lighthouseMiddleware, ErrorHandlerDirective::class));
-    }
+            }
 
 
     /**
@@ -35,8 +30,14 @@ class ErrorHandlerServiceProvider extends ServiceProvider
      * @param Dispatcher $dispatcher
      * @return void
      */
-    public function boot(Dispatcher $dispatcher): void
+    public function boot(Dispatcher $dispatcher, Config $config): void
     {
+
+        $lighthouseMiddleware = $config->get('lighthouse.field_middleware', []);
+        assert(is_array($lighthouseMiddleware));
+        $config->set('lighthouse.field_middleware', Arr::prepend($lighthouseMiddleware, ErrorHandlerDirective::class));
+
+
         $this->mergeConfigFrom(
             __DIR__ . '/../config/lighthouse-error-handler.php',
             'lighthouse-error-handler',

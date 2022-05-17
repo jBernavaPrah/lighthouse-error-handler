@@ -64,7 +64,7 @@ GRAPHQL
             ->map(fn(string $class) => Parser::parse($class::definition()))
             ->each(function (DocumentNode $documentNode) use ($documentAST) {
                 foreach ($documentNode->definitions as $node) {
-
+                    assert($node instanceof TypeDefinitionNode );
                     $documentAST->setTypeDefinition($node);
                 }
             });
