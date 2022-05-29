@@ -1,28 +1,76 @@
 <?php
 
-namespace JBernavaPrah\ErrorHandler\Errors;
+namespace JBernavaPrah\LighthouseErrorHandler\Errors;
 
-use JBernavaPrah\ErrorHandler\Error;
 use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Jasny\PhpdocParser\PhpdocParser;
-use Jasny\PhpdocParser\Tag\Summery;
-use Jasny\PhpdocParser\TagSet;
+use JBernavaPrah\LighthouseErrorHandler\Error;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;
 use Nuwave\Lighthouse\Support\Contracts\GraphQLContext;
 use ReflectionClass;
-use ReflectionMethod;
 
 class ValidationError extends Error
 {
-    public const NAME = 'ValidationError';
 
-    private Validator $validator;
+    protected Validator $validator;
+
+    public static function definition(): string
+    {
+
+        return /** @lang GraphQL */ <<<GRAPHQL
+
+type ValidationCode {
+    code: String!
+    variables: [String!]!
+}
+
+type ValidationField  {
+    field: String!
+    codes: [ValidationCode!]!
+}
+
+type ValidationError implements Error {
+    message: String!
+    fields: [ValidationField!]!
+}
+
+GRAPHQL;
+    }
+
+    public function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
+    {
+        return [
+            "message" => $this->getMessage(),
+            "fields" => Collection::wrap($this->validator->failed())
+                ->map(fn(array $codes, string $field) => $this->extractFieldAndCodes($field, $codes))
+                ->values()
+                ->toArray()
+        ];
+    }
+
+    #[ArrayShape(['field' => "string", 'codes' => "mixed"])]
+    protected function extractFieldAndCodes(string $field, array $codes): array
+    {
+        return [
+            'field' => $field,
+            'codes' => Collection::wrap($codes)
+                ->map(fn(?array $value, string $key) => $this->extractCodeAndVariables($key, $value))
+                ->values()
+                ->toArray(),
+        ];
+    }
+
+    #[ArrayShape(['code' => "string", 'variables' => "array"])]
+    protected function extractCodeAndVariables(string $code, array $variables): array
+    {
+        return ['code' => (string)Str::of($code)->snake()->upper(), 'variables' => Arr::wrap($variables)];
+    }
+
 
     /**
      * @param string $message
@@ -51,100 +99,12 @@ class ValidationError extends Error
     {
         $reflection = new ReflectionClass($exception);
         $validator = $reflection->getProperty('validator')->getValue($exception);
-
         assert($validator instanceof Validator, 'Validator is not an instance of: ' . Validator::class);
+        // execute to reinitialize the exception.
+        $validator->fails();
 
         return new self($exception->getMessage(), $validator);
     }
 
-    public static function definition(): string
-    {
-        $enums = self::generateEnumCodes();
 
-        $parent = parent::definition();
-
-        return /** @lang GraphQL */ <<<GRAPHQL
-
-type ValidationCode {
-    code: ValidationCodeType!
-    variables: [String!]!
-}
-
-type ValidationField  {
-    field: String!
-    codes: [ValidationCode!]!
-}
-
-"""
-Options for the `code` of `ValidationCode`.
-"""
-enum ValidationCodeType {
-$enums
-
-}
-
-$parent
-GRAPHQL;
-    }
-
-    /**
-     * @return string
-     */
-    protected static function generateEnumCodes(): string
-    {
-
-
-        return collect((new ReflectionClass(\Illuminate\Validation\Validator::class))->getMethods())
-
-            ->reject(fn (ReflectionMethod $method, int $_): bool => ! Str::of($method->getShortName())->startsWith('validate'))
-            ->filter()
-
-            ->mapWithKeys(fn (ReflectionMethod $method): array => [
-                self::validationCodeString($method->getShortName()) => $method->getDocComment(),
-            ])
-
-            ->reject(fn (string $doc, $key): bool => ! $key)
-            ->map(fn (string $docs, string $_): string => (new PhpdocParser(new TagSet([new Summery()])))->parse($docs)['description'])
-            ->map(
-                fn (string $description, string $key): string => <<<GRAPHQL
-"""
-$description
-"""
-$key
-GRAPHQL
-            )
-            ->implode("\n\n");
-    }
-
-    /**
-     * @param string $name
-     * @return string
-     */
-    protected static function validationCodeString(string $name): string
-    {
-        return (string)Str::of($name)->remove('validate')->snake()->upper();
-    }
-
-    /**
-     * @param mixed $root
-     * @param array<string, mixed>  $args
-     * @param GraphQLContext $context
-     * @param ResolveInfo $info
-     * @return array<string, mixed>
-     */
-    #[ArrayShape(['fields' => '[ValidationField!]!'])] protected function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
-    {
-        return [
-            'fields' => Collection::wrap($this->validator->failed())
-                ->map(function (array $value, string $field) {
-                    return [
-                        'field' => $field,
-                        'codes' => Collection::wrap($value)
-                            ->map(function (?array $value, string $key) {
-                                return ['code' => (string)Str::of($key)->snake()->upper(), 'variables' => Arr::wrap($value)];
-                            })->values()->toArray(),
-                    ];
-                })->values()->toArray(),
-        ];
-    }
 }
