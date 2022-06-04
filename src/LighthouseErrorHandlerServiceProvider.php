@@ -13,6 +13,7 @@ class LighthouseErrorHandlerServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->singleton(FieldManipulator::class);
+        $this->app->singleton(UnionResolveType::class);
 
     }
 

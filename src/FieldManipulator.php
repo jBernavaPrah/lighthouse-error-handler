@@ -63,8 +63,24 @@ class FieldManipulator
                 $unionType = $this->generateUnionType($node, $parentType);
                 $documentAST->setTypeDefinition($unionType);
                 $returnTypeName = ASTHelper::getUnderlyingTypeName($node);
+                $modelName =  addslashes(ASTHelper::modelName($node));
 
                 $node->type = Parser::typeReference(/** @lang GraphQL */ "{$unionType->name->value}" . ($node->type instanceof NonNullTypeNode ? "!" : ""));
+
+
+
+                foreach ($node->directives as $directive) {
+
+                    if (ASTHelper::directiveArgValue($directive, "model", "_NA") === "_NA") {
+
+                        $directive->arguments[] = Parser::constArgument(/** @lang GraphQL */ <<<GRAPHQL
+model: "$modelName"
+GRAPHQL
+                        );
+
+                    }
+                }
+
                 $node->directives = ASTHelper::prepend($node->directives, Parser::constDirective(/** @lang GraphQL */ <<<GRAPHQL
 @errorable(defaultType: "{$returnTypeName}")
 GRAPHQL
@@ -94,7 +110,7 @@ GRAPHQL
 
         return Parser::unionTypeDefinition(/** @lang GraphQL */ <<<GRAPHQL
 "Union to handle the underlying {$node->name->value}"
-    union $unionName = $unionType
+    union $unionName @union(resolveType: "JBernavaPrah\\\LighthouseErrorHandler\\\UnionResolveType@resolveType") = $unionType
 GRAPHQL
         );
     }

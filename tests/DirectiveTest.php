@@ -4,6 +4,7 @@ namespace JBernavaPrah\LighthouseErrorHandler\Tests;
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use JBernavaPrah\LighthouseErrorHandler\Errors\AuthenticationError;
@@ -24,15 +25,44 @@ class DirectiveTest extends TestCase
         $this->setUpTestSchema();
     }
 
-    function test_work_with_union_types()
+    function test_with_create_directive()
     {
-
-        $this->mockResolver(['__typename' => "Foo"]);
 
         $this->schema = /** @lang GraphQL */
             '
 
-        type Foo {
+        type User {
+            id: String
+        }
+
+        type Query {
+            foo: User @paginate(type: PAGINATOR)
+        }
+        ';
+
+        $this->graphQL(/** @lang GraphQL */ "query  {
+            foo(first: 1) {
+                __typename
+            }
+}")
+            ->assertJsonFragment([
+                'data' => [
+                    'foo' => [
+                        "__typename" => "UserPaginator"
+                    ],
+                ],
+            ]);
+    }
+
+    function test_work_with_union_types()
+    {
+
+        $this->mockResolver(new User());
+
+        $this->schema = /** @lang GraphQL */
+            '
+
+        type User {
             name: Int
         }
 
@@ -40,7 +70,7 @@ class DirectiveTest extends TestCase
             int: Int
         }
 
-        union UF2 = Foo | Foo2
+        union UF2 = User | Foo2
 
         type Query {
             foo: UF2 @mock
@@ -55,7 +85,7 @@ class DirectiveTest extends TestCase
             ->assertJsonFragment([
                 'data' => [
                     'foo' => [
-                        "__typename" => "Foo"
+                        "__typename" => "User"
                     ],
                 ],
             ]);
@@ -233,6 +263,7 @@ class DirectiveTest extends TestCase
 
         $this->graphQL(/** @lang GraphQL */ "query  {
             foo {
+
                 ...on ValidationError {
                     fields {
                         field

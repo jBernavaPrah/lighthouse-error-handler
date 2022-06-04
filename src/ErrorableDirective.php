@@ -36,6 +36,10 @@ directive @errorable(
 GRAPHQL;
     }
 
+    public function __construct(protected UnionResolveType $resolveType)
+    {
+    }
+
     /**
      * Wrap around the final field resolver.
      *
@@ -52,7 +56,8 @@ GRAPHQL;
         $fieldValue->setResolver(function ($root, array $args, GraphQLContext $context, ResolveInfo $info) use ($previousResolver) {
 
             try {
-                return $this->resolve(fn() => $previousResolver($root, $args, $context, $info));
+                $this->resolveType->setResolveType($this->directiveArgValue("defaultType"));
+                return $previousResolver($root, $args, $context, $info);
             } catch (AuthorizationException $exception) {
                 return AuthorizationError::fromLaravel($exception)->resolve($root, $args, $context, $info);
             } catch (AuthenticationException $exception) {
@@ -70,17 +75,4 @@ GRAPHQL;
         return $next($fieldValue);
     }
 
-    protected function resolve(callable $resolver)
-    {
-
-        $result = $resolver();
-
-        if (is_array($result)) {
-            $result["__typename"] = $result["__typename"] ?? $this->directiveArgValue("defaultType");
-            return $result;
-        }
-
-        return $result;
-
-    }
 }
