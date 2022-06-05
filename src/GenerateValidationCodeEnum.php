@@ -11,33 +11,38 @@ use ReflectionClass;
 
 class GenerateValidationCodeEnum
 {
+
+    protected array $codes = [];
+
     /**
      * @return array
      */
     public function generate(): array
     {
-        $codes = [];
-        foreach ((new ReflectionClass(Validator::class))->getMethods() as $reflectionMethod) {
-            if (
-                $reflectionMethod->getShortName() === "validated" ||
-                ! Str::of($reflectionMethod->getShortName())->startsWith('validate') ||
-                !($code = $this->validationCodeString($reflectionMethod->getShortName()))
-            ) {
-                continue;
-            }
 
-            $description = (new PhpdocParser(new TagSet([new Summery()])))->parse($reflectionMethod->getDocComment())['description'];
+        if (!$this->codes) {
+            foreach ((new ReflectionClass(Validator::class))->getMethods() as $reflectionMethod) {
+                if (
+                    $reflectionMethod->getShortName() === "validated" ||
+                    !Str::of($reflectionMethod->getShortName())->startsWith('validate') ||
+                    !($code = $this->validationCodeString($reflectionMethod->getShortName()))
+                ) {
+                    continue;
+                }
 
-
-            $codes[] = <<<GRAPHQL
+                $description = (new PhpdocParser(new TagSet([new Summery()])))->parse($reflectionMethod->getDocComment())['description'];
+                $this->codes[] = <<<GRAPHQL
 """
 $description
 """
 $code
 GRAPHQL;
+            }
+
         }
 
-        return $codes;
+
+        return $this->codes;
     }
 
     /**

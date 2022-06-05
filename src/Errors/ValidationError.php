@@ -18,7 +18,7 @@ class ValidationError extends Error
 
     public static function definition(): string
     {
-        $codes = implode("\n\n", app(GenerateValidationCodeEnum::class)->generate());
+       $codes = implode("\n\n", app(GenerateValidationCodeEnum::class)->generate());
 
         return /** @lang GraphQL */ <<<GRAPHQL
 
