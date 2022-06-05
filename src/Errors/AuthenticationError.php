@@ -3,14 +3,11 @@
 namespace JBernavaPrah\LighthouseErrorHandler\Errors;
 
 use JBernavaPrah\LighthouseErrorHandler\Error;
-use GraphQL\Type\Definition\ResolveInfo;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;
-use Nuwave\Lighthouse\Support\Contracts\GraphQLContext;
 
 class AuthenticationError extends Error
 {
-
     /**
      * @var array<string|int, string>
      */
@@ -44,8 +41,8 @@ type AuthenticationError  implements Error {
 GRAPHQL;
     }
 
-    #[ArrayShape(['message' => "string", 'guards' => "mixed"])]
-    public function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
+    #[ArrayShape(['message' => 'string', 'guards' => 'mixed'])]
+    public function resolver(): array
     {
         return [
             'message' => $this->getMessage(),

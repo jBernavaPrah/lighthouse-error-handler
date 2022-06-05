@@ -25,7 +25,48 @@ class DirectiveTest extends TestCase
         $this->setUpTestSchema();
     }
 
-    function test_with_create_directive()
+    function test_with_validation_directive()
+    {
+
+        $this->schema = /** @lang GraphQL */
+            '
+
+        type User {
+            id: String
+        }
+
+        type Query
+
+        type Mutation {
+            foo(id: String! @rules(apply:["min:10"])): User @create
+        }
+        ';
+
+        $this->graphQL(/** @lang GraphQL */ "mutation {
+            foo(id: \"123123\") {
+                __typename
+                ... on ValidationError {
+                    fields {
+                        field
+                    }
+
+                }
+            }
+}")
+            ->assertJsonFragment([
+                'data' => [
+                    'foo' => [
+                        "__typename" => "ValidationError",
+                        "fields" => [
+                            ["field" => "id"]
+                        ]
+
+                    ],
+                ],
+            ]);
+    }
+
+    function test_with_paginate_directive()
     {
 
         $this->schema = /** @lang GraphQL */
@@ -43,6 +84,7 @@ class DirectiveTest extends TestCase
         $this->graphQL(/** @lang GraphQL */ "query  {
             foo(first: 1) {
                 __typename
+
             }
 }")
             ->assertJsonFragment([
@@ -217,6 +259,7 @@ class DirectiveTest extends TestCase
 
         $this->graphQL(/** @lang GraphQL */ "query  {
             foo {
+                __typename
                 ...on ValidationError {
                     fields {
                         field
@@ -231,10 +274,15 @@ class DirectiveTest extends TestCase
             ->assertJsonFragment([
                 'data' => [
                     'foo' => [
+                        "__typename" => "ValidationError",
                         "fields" => [
-                            ["field" => "name", "codes" => [
-                                ["code" => "MIN", "variables" => ["5"]]
-                            ]]
+                            [
+                                "codes" =>[
+                                    ["code" => "MIN", "variables" => ["5"]]
+                                ]
+                                , "field" => "name"
+                            ]
+
                         ]
                     ],
                 ],
@@ -263,7 +311,7 @@ class DirectiveTest extends TestCase
 
         $this->graphQL(/** @lang GraphQL */ "query  {
             foo {
-
+                __typename
                 ...on ValidationError {
                     fields {
                         field
@@ -278,10 +326,15 @@ class DirectiveTest extends TestCase
             ->assertJsonFragment([
                 'data' => [
                     'foo' => [
+                        "__typename" => "ValidationError",
                         "fields" => [
-                            ["field" => "name", "codes" => [
-                                ["code" => "MIN", "variables" => ["5"]]
-                            ]]
+                            [
+                                "codes" =>[
+                                    ["code" => "MIN", "variables" => ["5"]]
+                                ]
+                                , "field" => "name"
+                            ]
+
                         ]
                     ],
                 ],
@@ -348,6 +401,7 @@ class DirectiveTest extends TestCase
                 'data' => [
                     'foo1' => [
                         "__typename" => "AuthorizationError"
+
                     ],
                     'foo2' => [
                         "__typename" => "AuthorizationError"

@@ -2,7 +2,7 @@
 
 namespace JBernavaPrah\LighthouseErrorHandler;
 
-use Illuminate\Config\Repository;
+use GraphQL\Executor\Executor;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use Nuwave\Lighthouse\Events\ManipulateAST;
@@ -14,7 +14,9 @@ class LighthouseErrorHandlerServiceProvider extends ServiceProvider
     {
         $this->app->singleton(FieldManipulator::class);
         $this->app->singleton(UnionResolveType::class);
+        $this->app->singleton(GenerateValidationCodeEnum::class);
 
+        Executor::setImplementationFactory([ReferenceExecutor::class, 'create']);
     }
 
 
@@ -24,9 +26,8 @@ class LighthouseErrorHandlerServiceProvider extends ServiceProvider
      * @param Dispatcher $dispatcher
      * @return void
      */
-    public function boot(Dispatcher $dispatcher, Repository $config): void
+    public function boot(Dispatcher $dispatcher): void
     {
-
         $dispatcher->listen(
             ManipulateAST::class,
             ASTManipulator::class,

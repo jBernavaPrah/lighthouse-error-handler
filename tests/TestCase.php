@@ -11,6 +11,7 @@ use Nuwave\Lighthouse\LighthouseServiceProvider;
 use Nuwave\Lighthouse\Pagination\PaginationServiceProvider;
 use Nuwave\Lighthouse\Testing\MakesGraphQLRequests;
 use Nuwave\Lighthouse\Testing\RefreshesSchemaCache;
+use Nuwave\Lighthouse\Validation\ValidationServiceProvider;
 
 abstract class TestCase extends \Orchestra\Testbench\TestCase
 {
@@ -27,6 +28,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         return [
             LighthouseServiceProvider::class,
             PaginationServiceProvider::class,
+            ValidationServiceProvider::class,
             LighthouseErrorHandlerServiceProvider::class,
         ];
     }

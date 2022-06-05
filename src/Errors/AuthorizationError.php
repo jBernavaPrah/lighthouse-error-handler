@@ -2,16 +2,13 @@
 
 namespace JBernavaPrah\LighthouseErrorHandler\Errors;
 
-use JBernavaPrah\LighthouseErrorHandler\Error;
-use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Auth\Access\AuthorizationException;
+use JBernavaPrah\LighthouseErrorHandler\Error;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;
-use Nuwave\Lighthouse\Support\Contracts\GraphQLContext;
 
 class AuthorizationError extends Error
 {
-
     public static function definition(): string
     {
         return /** @lang GraphQL */ <<<GRAPHQL
@@ -29,11 +26,11 @@ GRAPHQL;
         return new self($exception->getMessage(), $exception->getCode(), $exception);
     }
 
-    #[ArrayShape(["message" => "string"])]
-    public function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
+    #[ArrayShape(['message' => 'string'])]
+    public function resolver(): array
     {
         return [
-            "message" => $this->getMessage()
+            'message' => $this->getMessage(),
         ];
     }
 }

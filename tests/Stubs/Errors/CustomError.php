@@ -21,7 +21,7 @@ type CustomError implements Error {
 GRAPHQL;
     }
 
-    public function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
+    public function resolver(): array
     {
         return [
             "message" => $this->getMessage()

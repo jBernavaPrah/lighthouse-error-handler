@@ -5,13 +5,8 @@ includes:
     - vendor/phpstan/phpstan-phpunit/rules.neon
 
 parameters:
-    level: max
+    level: 5
     paths:
         - src
-    # - tests
-    ignoreErrors:
-        - '#\$callback of method Illuminate\\Support\\Collection(.*)::map\(\).*#'
-        - '#\$callback of method Illuminate\\Support\\Collection(.*)::reject\(\).*#'
-        - '#Unable to resolve the template type TNode in call to method static method Nuwave\\Lighthouse\\Schema\\AST\\ASTHelper::firstByName\(\)#'
-        - '#Unable to resolve the template type TMapValue in call to method Illuminate\\Support\\Collection<\(int\|string\),string>::map\(\)#'
-        - '#Unable to resolve the template type TKey in call to function collect#'
+        # - tests
+

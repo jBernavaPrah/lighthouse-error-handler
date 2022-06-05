@@ -2,30 +2,32 @@
 
 namespace JBernavaPrah\LighthouseErrorHandler\Errors;
 
-use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use JBernavaPrah\LighthouseErrorHandler\Error;
+use JBernavaPrah\LighthouseErrorHandler\GenerateValidationCodeEnum;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;
-use Nuwave\Lighthouse\Support\Contracts\GraphQLContext;
 use ReflectionClass;
 
 class ValidationError extends Error
 {
-
     protected Validator $validator;
 
     public static function definition(): string
     {
+        $codes = implode("\n\n", app(GenerateValidationCodeEnum::class)->generate());
 
         return /** @lang GraphQL */ <<<GRAPHQL
 
+enum ValidationCodes {
+    $codes
+}
+
 type ValidationCode {
-    code: String!
+    code: ValidationCodes!
     variables: [String!]!
 }
 
@@ -42,31 +44,48 @@ type ValidationError implements Error {
 GRAPHQL;
     }
 
-    public function resolver(mixed $root, array $args, GraphQLContext $context, ResolveInfo $info): array
+    /**
+     * @return array<string,mixed>
+     */
+    public function resolver(): array
     {
+        $fields = [];
+
+        foreach ($this->validator->failed() as $field => $codes) {
+            $fields[] = $this->extractFieldAndCodes($field, $codes);
+        }
+
         return [
-            "message" => $this->getMessage(),
-            "fields" => Collection::wrap($this->validator->failed())
-                ->map(fn(array $codes, string $field) => $this->extractFieldAndCodes($field, $codes))
-                ->values()
-                ->toArray()
+            'message' => $this->getMessage(),
+            'fields' => $fields,
         ];
     }
 
-    #[ArrayShape(['field' => "string", 'codes' => "mixed"])]
+    /**
+     * @param string $field
+     * @param array<string,null|array<int,string>> $codes
+     * @return array<string,mixed>
+     */
     protected function extractFieldAndCodes(string $field, array $codes): array
     {
+        $c = [];
+        foreach ($codes as $code => $variables) {
+            $c[] = $this->extractCodeAndVariables($code, $variables);
+        }
+
         return [
             'field' => $field,
-            'codes' => Collection::wrap($codes)
-                ->map(fn(?array $value, string $key) => $this->extractCodeAndVariables($key, $value))
-                ->values()
-                ->toArray(),
+            'codes' => $c,
         ];
     }
 
-    #[ArrayShape(['code' => "string", 'variables' => "array"])]
-    protected function extractCodeAndVariables(string $code, array $variables): array
+    /**
+     * @param string $code
+     * @param array<int,string>|null $variables
+     * @return array
+     */
+    #[ArrayShape(['code' => 'string', 'variables' => 'array'])]
+    protected function extractCodeAndVariables(string $code, ?array $variables): array
     {
         return ['code' => (string)Str::of($code)->snake()->upper(), 'variables' => Arr::wrap($variables)];
     }
@@ -105,6 +124,4 @@ GRAPHQL;
 
         return new self($exception->getMessage(), $validator);
     }
-
-
 }

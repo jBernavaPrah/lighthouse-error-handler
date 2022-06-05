@@ -9,12 +9,7 @@ use GraphQL\Language\AST\TypeDefinitionNode;
 use GraphQL\Language\Parser;
 use HaydenPierce\ClassFinder\ClassFinder;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Jasny\PhpdocParser\PhpdocParser;
-use Jasny\PhpdocParser\Tag\MultiTag;
-use Jasny\PhpdocParser\Tag\PhpDocumentor\TypeTag;
-use Jasny\PhpdocParser\TagSet;
 use JBernavaPrah\LighthouseErrorHandler\Errors\AuthenticationError;
 use JBernavaPrah\LighthouseErrorHandler\Errors\AuthorizationError;
 use JBernavaPrah\LighthouseErrorHandler\Errors\ValidationError;
@@ -25,7 +20,6 @@ use ReflectionException;
 
 class ErrorService
 {
-
     /**
      * @var array|string[]
      */
@@ -47,29 +41,26 @@ class ErrorService
         $errorNamespaces = $this->config->get('lighthouse.namespaces.errors') ?? [];
 
         return collect($errorNamespaces)
-            ->merge(["JBernavaPrah\\LighthouseErrorHandler\\Errors"])
+            ->merge(['JBernavaPrah\\LighthouseErrorHandler\\Errors'])
             ->flatten()
-            ->map(fn(string $namespace) => ClassFinder::getClassesInNamespace($namespace, ClassFinder::RECURSIVE_MODE))
+            ->map(fn (string $namespace) => ClassFinder::getClassesInNamespace($namespace, ClassFinder::RECURSIVE_MODE))
             ->flatten()
-            ->reject(fn(string $class) => !is_subclass_of($class, Error::class))
-            ->mapWithKeys(fn(string $class) => [$class => Parser::parse($class::definition())])
-            ->each(fn(DocumentNode $documentNode, string $class) => $this->validateErrorDocumentNode($documentNode, $class))
-            ->map(fn(DocumentNode $documentNode, string $_) => $this->extractTypeDefinitionFromDocumentNode($documentNode))
+            ->reject(fn (string $class) => ! is_subclass_of($class, Error::class))
+            ->mapWithKeys(fn (string $class) => [$class => Parser::parse($class::definition())])
+            ->each(fn (DocumentNode $documentNode, string $class) => $this->validateErrorDocumentNode($documentNode, $class))
+            ->map(fn (DocumentNode $documentNode, string $_) => $this->extractTypeDefinitionFromDocumentNode($documentNode))
             ->flatten()
             ->toArray();
-
     }
 
     protected function extractTypeDefinitionFromDocumentNode(DocumentNode $documentNode): array
     {
-
         $nodes = [];
         foreach ($documentNode->definitions as $node) {
             $nodes[] = $node;
         }
 
         return $nodes;
-
     }
 
     /**
@@ -78,16 +69,16 @@ class ErrorService
      */
     protected function validateErrorDocumentNode(DocumentNode $documentNode, string $class)
     {
-
         $className = (new ReflectionClass($class))->getShortName();
 
         foreach ($documentNode->definitions as $definition) {
             assert($definition instanceof TypeDefinitionNode);
-            if ($definition->name->value === $className) return true;
+            if ($definition->name->value === $className) {
+                return true;
+            }
         }
 
         throw new DefinitionException("Impossible to find the root definition on class {$class}. ");
-
     }
 
     /**
@@ -104,9 +95,9 @@ class ErrorService
         return collect($this->getRelatedClassException($node))
             ->merge($this->defaultErrorClasses)
             ->flatten()
-            ->reject(fn(string $error) => !class_exists($error) || !is_subclass_of($error, Error::class))
+            ->reject(fn (string $error) => ! class_exists($error) || ! is_subclass_of($error, Error::class))
             ->flatten()
-            ->map(fn(string $class) => (new ReflectionClass($class))->getShortName())
+            ->map(fn (string $class) => (new ReflectionClass($class))->getShortName())
             ->toArray();
     }
 
@@ -125,15 +116,14 @@ class ErrorService
         $className = Utils::namespaceClassname(
             (string)Str::of($node->name->value)->camel()->ucfirst(),
             $namespaces,
-            fn($error): bool => class_exists($error),
+            fn ($error): bool => class_exists($error),
         );
 
-        if (!$className) {
+        if (! $className) {
             return [];
         }
 
         return $this->getDocumentedClassException($className, '__invoke');
-
     }
 
     /**
@@ -144,7 +134,6 @@ class ErrorService
      */
     protected function getDocumentedClassException(string $class, string $method): array
     {
-
         $attributes = (new ReflectionClass($class))->getMethod($method)->getAttributes(HasError::class);
 
         $throws = [];

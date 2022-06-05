@@ -9,33 +9,24 @@ use GraphQL\Language\AST\ObjectTypeDefinitionNode;
 use GraphQL\Language\AST\ScalarTypeDefinitionNode;
 use GraphQL\Language\AST\UnionTypeDefinitionNode;
 use GraphQL\Language\Parser;
-use GraphQL\Type\Definition\NullableType;
-use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Jasny\PhpdocParser\PhpdocParser;
-use Jasny\PhpdocParser\Tag\MultiTag;
-use Jasny\PhpdocParser\Tag\PhpDocumentor\TypeTag;
-use Jasny\PhpdocParser\TagSet;
 use Nuwave\Lighthouse\Exceptions\DefinitionException;
 use Nuwave\Lighthouse\Schema\AST\ASTHelper;
 use Nuwave\Lighthouse\Schema\AST\DocumentAST;
-use Nuwave\Lighthouse\Support\Utils;
-use ReflectionClass;
 use ReflectionException;
 
 class FieldManipulator
 {
-
     public function __construct(protected ErrorService $errorService)
     {
     }
 
-    function unionName(FieldDefinitionNode $node, ObjectTypeDefinitionNode $parentType): string
+    public function unionName(FieldDefinitionNode $node, ObjectTypeDefinitionNode $parentType): string
     {
         return Str::of($node->name->value)->camel()->ucfirst()
             ->append(Str::of($parentType->name->value)->camel()->ucfirst()
-                ->append("Result"));
+                ->append('Result'));
     }
 
 
@@ -44,13 +35,14 @@ class FieldManipulator
      * @param ObjectTypeDefinitionNode $parentType
      * @return void
      */
-    public function manipulate(DocumentAST              $documentAST,
-                               ObjectTypeDefinitionNode $parentType): void
+    public function manipulate(
+        DocumentAST              $documentAST,
+        ObjectTypeDefinitionNode $parentType
+    ): void
     {
-
+        /** @var  array<\GraphQL\Language\AST\FieldDefinitionNode>|\GraphQL\Language\AST\NodeList<\GraphQL\Language\AST\FieldDefinitionNode> $fields */
         $fields = collect($parentType->fields)
             ->map(function (FieldDefinitionNode $node, string $_) use ($parentType, $documentAST) {
-
                 if ($node->type instanceof ListTypeNode) {
                     throw new DefinitionException("Field \"{$node->name->value}\" of type \"{$parentType->name->value}\" cannot be a list.");
                 }
@@ -63,21 +55,16 @@ class FieldManipulator
                 $unionType = $this->generateUnionType($node, $parentType);
                 $documentAST->setTypeDefinition($unionType);
                 $returnTypeName = ASTHelper::getUnderlyingTypeName($node);
-                $modelName =  addslashes(ASTHelper::modelName($node));
+                $modelName = addslashes(ASTHelper::modelName($node) ?: '');
 
-                $node->type = Parser::typeReference(/** @lang GraphQL */ "{$unionType->name->value}" . ($node->type instanceof NonNullTypeNode ? "!" : ""));
-
-
+                $node->type = Parser::typeReference(/** @lang GraphQL */ "{$unionType->name->value}" . ($node->type instanceof NonNullTypeNode ? '!' : ''));
 
                 foreach ($node->directives as $directive) {
-
-                    if (ASTHelper::directiveArgValue($directive, "model", "_NA") === "_NA") {
-
+                    if (ASTHelper::directiveArgValue($directive, 'model', '_NA') === '_NA') {
                         $directive->arguments[] = Parser::constArgument(/** @lang GraphQL */ <<<GRAPHQL
 model: "$modelName"
 GRAPHQL
                         );
-
                     }
                 }
 
@@ -91,7 +78,6 @@ GRAPHQL
 
 
         ASTHelper::mergeUniqueNodeList($parentType->fields, $fields, true);
-
     }
 
     /**
@@ -100,8 +86,6 @@ GRAPHQL
      */
     protected function generateUnionType(FieldDefinitionNode $node, ObjectTypeDefinitionNode $parentType): UnionTypeDefinitionNode
     {
-
-
         $unionType = Collection::wrap($this->getUnderlyingTypeNames($node))
             ->merge($this->errorService->getThrowableErrorsFromField($node))
             ->implode(' | ');
@@ -124,8 +108,11 @@ GRAPHQL
         $nodeType = ASTHelper::underlyingType($node);
 
         if ($nodeType instanceof UnionTypeDefinitionNode) {
-            return collect($nodeType->types)
-                ->map(fn($type) => ASTHelper::getUnderlyingTypeName($type))->toArray();
+            $names = [];
+            foreach ($nodeType->types as $type) {
+                $names[] = ASTHelper::getUnderlyingTypeName($type);
+            }
+            return $names;
         }
 
         return [$nodeType->name->value];
